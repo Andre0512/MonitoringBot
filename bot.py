@@ -53,19 +53,46 @@ def help(bot, update):
     update.message.reply_text('Help!')
 
 
-def echo(bot, update):
+def update_processes(bot, m_id, msg):
     p_dict = cfg['processes']
-    p_list = sorted(list(p_dict.copy()))
-    p_list = ["❔ *" + p + "*\n"for p in p_list]
-    m_id = update.message.reply_text("".join(p_list), parse_mode=ParseMode.MARKDOWN)
     for key, value in sorted(p_dict.items()):
-        state = subprocess.check_output(shlex.split("bash check_process.sh " + key + " " + value))
+        state = subprocess.check_output(shlex.split("bash check_process.sh pgrep " + value + " " + key))
         state = state.decode('utf-8')
         if state.split(" ")[0] == "True":
-            p_list = [p.replace("❔ *" + key + "*\n", "✔️ *" + key + "* `" + state.split(" ")[1] + "`") for p in p_list]
+            msg = msg.replace("❔ *" + key + "*\n", "✔️ *" + key + "* `" + state.split(" ")[1] + "`")
         else:
-            p_list = [p.replace("❔ *" + key + "*\n", "❌ *" + key + "*\n") for p in p_list]
-        bot.edit_message_text(chat_id=m_id.chat.id, message_id=m_id.message_id, text="".join(p_list), parse_mode=ParseMode.MARKDOWN)
+            msg = msg.replace("❔ *" + key + "*\n", "❌ *" + key + "*\n")
+        bot.edit_message_text(chat_id=m_id.chat.id, message_id=m_id.message_id, text=msg, parse_mode=ParseMode.MARKDOWN)
+    return msg 
+
+
+def update_fhem(bot, m_id, msg):
+    f_dict = cfg['fhem']
+    for key, value in sorted(f_dict.items()):  
+        state = subprocess.check_output(shlex.split("bash check_process.sh fhem " + value))
+        replace = "✔️" if re.match(".*is running.*", state.decode('utf-8')) else "❌"
+        msg = msg.replace("❔ *" + key + "*\n", replace + " *" + key + "*\n")
+        bot.edit_message_text(chat_id=m_id.chat.id, message_id=m_id.message_id, text=msg, parse_mode=ParseMode.MARKDOWN)
+    return msg 
+
+
+def base_msg(update):
+    msg = "*Python-Scripts*\n"
+    p_list = sorted(list(cfg['processes']))
+    p_list = ["❔ *" + p + "*\n"for p in p_list]
+    msg = msg + "".join(p_list) + "\n*FHEM*\n"
+    f_list = sorted(cfg['fhem'])
+    f_list = ["❔ *" + f + "*\n" for f in f_list]
+    msg = msg + "".join(f_list)
+    m_id = update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+    return m_id, msg
+
+
+def echo(bot, update):
+    m_id, msg = base_msg(update)
+    msg = update_processes(bot, m_id, msg)
+    msg = update_fhem(bot, m_id, msg)
+
 
 def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))

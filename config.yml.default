@@ -4,3 +4,8 @@ processes:
         <PYTHON-SCRIPT-NAME1>: <HOST1>
         <PYTHON-SCRIPT-NAME2>: <HOST2>
 	<...................>: <.....>
+fhem:
+        <FHEM-NAME1>: <HOST1>
+        <FHEM-NAME2>: <HOST2>
+        <..........>: <.....>
+
