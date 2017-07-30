@@ -51,24 +51,32 @@ function LocalProcess()
 process=$1
 out=$(pgrep -a python3)
 pid=$(echo $out | sed 's/.*\([0-9]\{1,6\}\) python3 [\/a-zA-Z0-9]*'$1'.*/\1/g')
-if [[ "$pid" =~ ^[0-9]+$ ]]; then
-    echo "Running"
-else
-    echo "Not running"
-fi
 echo $(ssh pi@10.5.12.9 "set -- '$process'; $script")
+}
+
+function getPid()
+{
+echo $pid
 }
 
 if [[ "$2" == "Pi" ]];
 then
-    result=$(PiProcess $1)
+    result=$(ssh pi@10.5.12.9 "pgrep -a python3")
 elif [[ "$2" == "local" ]];
 then
-    result=$(LocalProcess $1)
+    result=$(pgrep -a python3)
 else
-    result=$(UberspaceProcess $1)
+    result=$(ssh abasche@abasche.de "pgrep -fl python3")
+
+fi
+pattern='s/\([0-9]\{1,6\}\) [\/a-zA-Z0-9]*python3 [\/a-zA-Z0-9]*'$1'/\1/p'
+pid=$(sed -n "$pattern" <<< $result)
+
+if [[ "$pid" != "" ]]; then
+	state="Running"
+else
+	state="Not running"
 fi
 
 
-
-echo $1": "$result
+echo $1"("$pid"): "$state
