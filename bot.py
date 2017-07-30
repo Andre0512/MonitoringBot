@@ -76,14 +76,29 @@ def update_fhem(bot, m_id, msg):
     return msg 
 
 
+def update_devices(bot, m_id, msg):
+    f_dict = cfg['devices']
+    for key, value in sorted(f_dict.items()):
+        remote = None if not " " in value else value.split(" ")[1]
+        state = ping(value.split(" ")[0], remote=remote)
+        replace = "✔️" if state else "❌"
+        msg = msg.replace("❔ *" + key + "*\n", replace + " *" + key + "*\n")
+        bot.edit_message_text(chat_id=m_id.chat.id, message_id=m_id.message_id, text=msg, parse_mode=ParseMode.MARKDOWN)
+    return msg 
+
+
+def add_category(category, msg):
+    key_list = sorted(list(cfg[category]))
+    key_list = ["❔ *" + key + "*\n" for key in key_list]
+    msg = msg + "".join(key_list)
+    return msg
+
+
 def base_msg(update):
     msg = "*Python-Scripts*\n"
-    p_list = sorted(list(cfg['processes']))
-    p_list = ["❔ *" + p + "*\n"for p in p_list]
-    msg = msg + "".join(p_list) + "\n*FHEM*\n"
-    f_list = sorted(cfg['fhem'])
-    f_list = ["❔ *" + f + "*\n" for f in f_list]
-    msg = msg + "".join(f_list)
+    msg = add_category('processes', msg) + "\n*FHEM*\n"
+    msg = add_category('fhem', msg) + "\n*Geräte*\n"
+    msg = add_category('devices', msg)
     m_id = update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
     return m_id, msg
 
@@ -92,6 +107,13 @@ def echo(bot, update):
     m_id, msg = base_msg(update)
     msg = update_processes(bot, m_id, msg)
     msg = update_fhem(bot, m_id, msg)
+    msg = update_devices(bot, m_id, msg)
+
+def ping(ip, remote=None):
+    add = ['ssh', remote] if remote else []
+    result = subprocess.call(add + ['ping', '-c', '2', '-W', '1', ip],
+        stdout=open('/dev/null', 'w'), stderr=open('/dev/null', 'w'))
+    return result == 0
 
 
 def error(bot, update, error):

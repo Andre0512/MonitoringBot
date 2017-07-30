@@ -8,4 +8,7 @@ fhem:
         <FHEM-NAME1>: <HOST1>
         <FHEM-NAME2>: <HOST2>
         <..........>: <.....>
-
+devices:
+        <HOST-NAME1>: <IP-ADDRESS>
+        <HOST-NAME2>: <IP-ADDRESS>
+        <..........>: <..........>
