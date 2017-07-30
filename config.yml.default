@@ -1,0 +1,6 @@
+bot:
+        token: <BOT-TOKEN> 
+processes:
+        <PYTHON-SCRIPT-NAME1>: <HOST1>
+        <PYTHON-SCRIPT-NAME2>: <HOST2>
+	<...................>: <.....>

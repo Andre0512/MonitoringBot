@@ -14,9 +14,9 @@ pattern='s/\([0-9]\{1,6\}\) [\/a-zA-Z0-9]*python3 [\/a-zA-Z0-9]*'$1'/\1/p'
 pid=$(sed -n "$pattern" <<< $result)
 
 if [[ "$pid" != "" ]]; then
-    echo $1"("$pid"): Running"
+    echo "True "$pid
 else
-    echo $1": Not running"
+    echo "False "
 fi
 
 
