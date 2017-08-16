@@ -84,19 +84,23 @@ def update_devices(value):
 
 
 @run_async
-def running_updates(object):
+def running_updates(val, m_id, bot):
     global msg
-    f_dict = cfg[object]
+    f_dict = cfg[val]
     for key, value in sorted(f_dict.items()):
         extra = None
-        if object == 'processes':
-            replace, extra = update_processes(key, value).result() #ASYNC USELESS
-        elif object == 'fhem':
-            replace = update_fhem(value).result() #ASYNC USELESS
-        elif object == 'devices':
-            replace = update_devices(value).result() #ASYNC USELESS
-        msg[object] = msg[object].replace("❔ *" + key + "*", replace + " *" + key + "*" + (extra if extra else ''))
-
+        if val == 'processes':
+            f_dict[key] = update_processes(key, value)
+        elif val == 'fhem':
+            f_dict[key] = update_fhem(value)
+        elif val == 'devices':
+            f_dict[key] = update_devices(value)
+    for key, value in sorted(f_dict.items()):
+        replace = value.result()
+        if type(replace) is list:
+            replace, extra = replace
+        msg[val] = msg[val].replace("❔ *" + key + "*", replace + " *" + key + "*" + (extra if extra else ''))
+    bot.edit_message_text(chat_id=m_id.chat.id, message_id=m_id.message_id, text='\n\n'.join(list(msg.values())), parse_mode=ParseMode.MARKDOWN)
 
 def add_category(category):
     key_list = sorted(list(cfg[category]))
@@ -118,22 +122,8 @@ def echo(bot, update):
     global msg
     msg, m_id = base_msg(update)
     for value in list(msg):
-        running_updates(value)
-    update_msg(bot, m_id)
+        running_updates(value, m_id, bot)
     
-
-@run_async
-def update_msg(bot, m_id):
-    while True:
-        text = '\n\n'.join(list(msg.values()))
-        try:
-            bot.edit_message_text(chat_id=m_id.chat.id, message_id=m_id.message_id, text=text, parse_mode=ParseMode.MARKDOWN)
-        except TelegramError:
-            pass
-        if not '❔' in text:
-            break
-        time.sleep(1)
-
 
 def ping(ip, remote=None):
     add = ['ssh', remote] if remote else []
