@@ -86,7 +86,7 @@ def update_devices(value):
 @run_async
 def running_updates(val, m_id, bot):
     global msg
-    f_dict = cfg[val]
+    f_dict = cfg[val].copy()
     for key, value in sorted(f_dict.items()):
         extra = None
         if val == 'processes':
@@ -101,6 +101,7 @@ def running_updates(val, m_id, bot):
             replace, extra = replace
         msg[val] = msg[val].replace("❔ *" + key + "*", replace + " *" + key + "*" + (extra if extra else ''))
     bot.edit_message_text(chat_id=m_id.chat.id, message_id=m_id.message_id, text='\n\n'.join(list(msg.values())), parse_mode=ParseMode.MARKDOWN)
+
 
 def add_category(category):
     key_list = sorted(list(cfg[category]))
@@ -123,7 +124,7 @@ def echo(bot, update):
     msg, m_id = base_msg(update)
     for value in list(msg):
         running_updates(value, m_id, bot)
-    
+
 
 def ping(ip, remote=None):
     add = ['ssh', remote] if remote else []
