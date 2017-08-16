@@ -4,12 +4,13 @@
 import yaml
 import subprocess
 import shlex
-from telegram.ext.dispatcher import run_async
+from telegram.ext.dispatcher import run_async, TelegramError
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import ParseMode
 import logging
 import os
 import re
+import time
 
 
 # Enable logging
@@ -53,65 +54,86 @@ def start(bot, update):
 def help(bot, update):
     update.message.reply_text('Help!')
 
-@run_async
-def update_processes(bot):
-    p_dict = cfg['processes']
-    global msg
-    for key, value in sorted(p_dict.items()):
-        state = subprocess.check_output(shlex.split("bash check_process.sh pgrep " + value + " " + key))
-        state = state.decode('utf-8')
-        if state.split(" ")[0] == "True":
-            msg.replace("❔ *" + key + "*", "✔️ *" + key + "* (`" + state.split(" ")[1].rstrip("\n") + "`)")
-        else:
-            msg.replace("❔ *" + key + "*", "❌ *" + key + "*")
-        bot.edit_message_text(chat_id=m_id.chat.id, message_id=m_id.message_id, text=msg, parse_mode=ParseMode.MARKDOWN)
-
 
 @run_async
-def update_fhem(bot):
-    f_dict = cfg['fhem']
-    global msg
-    for key, value in sorted(f_dict.items()):  
-        state = subprocess.check_output(shlex.split("bash check_process.sh fhem " + value))
-        replace = "✔️" if re.match(".*is running.*", state.decode('utf-8')) else "❌"
-        msg = msg.replace("❔ *" + key + "*", replace + " *" + key + "*")
-        bot.edit_message_text(chat_id=m_id.chat.id, message_id=m_id.message_id, text=msg, parse_mode=ParseMode.MARKDOWN)
+def update_processes(key, value):
+    state = subprocess.check_output(shlex.split("bash check_process.sh pgrep " + value + " " + key))
+    state = state.decode('utf-8')
+    if state.split(" ")[0] == "True":
+        replace = "✔️" 
+        extra = " (`" + state.split(" ")[1].rstrip("\n") + "`)"
+    else:
+        replace = "❌"
+        extra = None
+    return [replace, extra]
 
 
 @run_async
-def update_devices(bot):
-    f_dict = cfg['devices']
+def update_fhem(value):
+    state = subprocess.check_output(shlex.split("bash check_process.sh fhem " + value))
+    replace = "✔️" if re.match(".*is running.*", state.decode('utf-8')) else "❌"
+    return replace
+
+
+@run_async
+def update_devices(value):
+    remote = None if not " " in value else value.split(" ")[1]
+    state = ping(value.split(" ")[0], remote=remote)
+    replace = "✔️" if state else "❌"
+    return replace
+
+
+@run_async
+def running_updates(object):
     global msg
+    f_dict = cfg[object]
     for key, value in sorted(f_dict.items()):
-        remote = None if not " " in value else value.split(" ")[1]
-        state = ping(value.split(" ")[0], remote=remote)
-        replace = "✔️" if state else "❌"
-        msg = msg.replace("❔ *" + key + "*", replace + " *" + key + "*")
-        bot.edit_message_text(chat_id=m_id.chat.id, message_id=m_id.message_id, text=msg, parse_mode=ParseMode.MARKDOWN)
+        extra = None
+        if object == 'processes':
+            replace, extra = update_processes(key, value).result() #ASYNC USELESS
+        elif object == 'fhem':
+            replace = update_fhem(value).result() #ASYNC USELESS
+        elif object == 'devices':
+            replace = update_devices(value).result() #ASYNC USELESS
+        msg[object] = msg[object].replace("❔ *" + key + "*", replace + " *" + key + "*" + (extra if extra else ''))
 
 
-def add_category(category, msg):
+def add_category(category):
     key_list = sorted(list(cfg[category]))
     key_list = ["❔ *" + key + "*" for key in key_list]
-    msg = msg + "\n".join(key_list)
+    msg = "\n".join(key_list)
     return msg
 
 
 def base_msg(update):
-    global msg
-    global m_id
-    msg = "*Python-Scripts*\n"
-    msg = add_category('processes', msg) + "\n\n*FHEM*\n"
-    msg = add_category('fhem', msg) + "\n\n*Geräte*\n"
-    msg = add_category('devices', msg)
-    m_id = update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+    msg = {} 
+    msg['processes'] = "*Python-Scripts*\n" + add_category('processes')
+    msg['fhem'] = "*FHEM*\n" + add_category('fhem')
+    msg['devices'] = "*Geräte*\n" + add_category('devices')
+    m_id = update.message.reply_text('\n\n'.join(list(msg.values())), parse_mode=ParseMode.MARKDOWN)
+    return msg, m_id
 
 
 def echo(bot, update):
-    base_msg(update)
-    update_processes(bot)
-    update_fhem(bot)
-    update_devices(bot)
+    global msg
+    msg, m_id = base_msg(update)
+    for value in list(msg):
+        running_updates(value)
+    update_msg(bot, m_id)
+    
+
+@run_async
+def update_msg(bot, m_id):
+    while True:
+        text = '\n\n'.join(list(msg.values()))
+        try:
+            bot.edit_message_text(chat_id=m_id.chat.id, message_id=m_id.message_id, text=text, parse_mode=ParseMode.MARKDOWN)
+        except TelegramError:
+            pass
+        if not '❔' in text:
+            break
+        time.sleep(1)
+
 
 def ping(ip, remote=None):
     add = ['ssh', remote] if remote else []
@@ -130,7 +152,7 @@ def main():
     global cfg
     cfg = get_yml('./config.yml')  
     
-    updater = Updater(cfg['bot']['token'])
+    updater = Updater(cfg['bot']['token'], workers=32)
 
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))

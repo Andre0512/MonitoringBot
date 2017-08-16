@@ -2,7 +2,7 @@
 
 function getPid()
 {
-pattern='s/\([0-9]\{1,6\}\) [\/a-zA-Z0-9]*python3 [\/a-zA-Z0-9]*'$1'/\1/p'
+pattern='s/\([0-9]\{1,6\}\) [\/a-zA-Z0-9]*python3 [\/\._a-zA-Z0-9]*'$1'/\1/p'
 pid=$(sed -n "$pattern" <<< $result)
 
 if [[ "$pid" != "" ]]; then
