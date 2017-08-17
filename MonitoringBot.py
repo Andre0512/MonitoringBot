@@ -57,7 +57,8 @@ def help(bot, update):
 
 @run_async
 def update_processes(key, value):
-    state = subprocess.check_output(shlex.split("bash check_process.sh pgrep " + value + " " + key))
+    bash_file = os.path.join(os.path.dirname(__file__), 'check_process.sh')
+    state = subprocess.check_output(shlex.split("bash " + bash_file+ " pgrep " + value + " " + key))
     state = state.decode('utf-8')
     if state.split(" ")[0] == "True":
         replace = "✔️" 
@@ -70,7 +71,8 @@ def update_processes(key, value):
 
 @run_async
 def update_fhem(value):
-    state = subprocess.check_output(shlex.split("bash check_process.sh fhem " + value))
+    bash_file = os.path.join(os.path.dirname(__file__), 'check_process.sh')
+    state = subprocess.check_output(shlex.split("bash " + bash_file + " fhem " + value))
     replace = "✔️" if re.match(".*is running.*", state.decode('utf-8')) else "❌"
     return replace
 
@@ -141,8 +143,9 @@ def ping(ip, remote=None, count=2):
 
 
 def restart(bot, update):
+    bash_file = os.path.join(os.path.dirname(__file__), 'startup.sh')
     update.message.reply_text('Bot wird neugestartet...')
-    print(subprocess.check_output(shlex.split("bash startup.sh restart")))
+    subprocess.check_output(shlex.split("bash " + bash_file + " restart"))
 
 def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))
@@ -171,3 +174,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+#!/usr/bin/env python

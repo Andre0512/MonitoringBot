@@ -20,7 +20,7 @@
      * Replace the placeholder with your data
 * Running the MonitoringBot `python3 MonitoringBot.py`
 * Install crontab for checking the bot running state every minute:  
-```(cat /etc/crontab && echo "* * * * * root bash $PWD/startup.sh &") | sudo tee /etc/crontab```
+```(cat /etc/crontab && echo "* * * * * $USER bash $PWD/startup.sh &") | sudo tee /etc/crontab```
 
 ## License
 This project is under the MIT license.
