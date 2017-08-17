@@ -76,9 +76,9 @@ def update_fhem(value):
 
 
 @run_async
-def update_devices(value):
+def update_devices(value, secure=False):
     remote = None if not " " in value else value.split(" ")[1]
-    state = ping(value.split(" ")[0], remote=remote)
+    state = ping(value.split(" ")[0], remote=remote, count=5 if secure else 2)
     replace = "✔️" if state else "❌"
     return replace
 
@@ -93,8 +93,8 @@ def running_updates(val, m_id, bot):
             f_dict[key] = update_processes(key, value)
         elif val == 'fhem':
             f_dict[key] = update_fhem(value)
-        elif val == 'devices':
-            f_dict[key] = update_devices(value)
+        elif val == 'devices' or val == 'family':
+            f_dict[key] = update_devices(value, secure=True if val == 'family' else False)
     for key, value in sorted(f_dict.items()):
         replace = value.result()
         if type(replace) is list:
@@ -110,25 +110,32 @@ def add_category(category):
     return msg
 
 
-def base_msg(update):
-    msg = {} 
-    msg['processes'] = "*Python-Scripts*\n" + add_category('processes')
-    msg['fhem'] = "*FHEM*\n" + add_category('fhem')
-    msg['devices'] = "*Geräte*\n" + add_category('devices')
+def base_msg(update, bot, msg):
     m_id = update.message.reply_text('\n\n'.join(list(msg.values())), parse_mode=ParseMode.MARKDOWN)
-    return msg, m_id
-
-
-def echo(bot, update):
-    global msg
-    msg, m_id = base_msg(update)
     for value in list(msg):
         running_updates(value, m_id, bot)
 
 
-def ping(ip, remote=None):
+def dev(bot, update):
+    global msg
+    msg = {} 
+    msg['processes'] = "*Python-Scripts*\n" + add_category('processes')
+    msg['fhem'] = "*FHEM*\n" + add_category('fhem')
+    msg['devices'] = "*Geräte*\n" + add_category('devices')
+    base_msg(update, bot, msg)
+
+
+def wlan(bot, update):
+    global msg
+    msg = {} 
+    msg['family'] = "*Familie*\n" + add_category('family')
+    msg['devices'] = "*Geräte*\n" + add_category('devices')
+    base_msg(update, bot, msg)
+
+
+def ping(ip, remote=None, count=2):
     add = ['ssh', remote] if remote else []
-    result = subprocess.call(add + ['ping', '-c', '2', '-W', '1', ip],
+    result = subprocess.call(add + ['ping', '-c', str(count), '-W', str(int(count/2)), ip],
         stdout=open('/dev/null', 'w'), stderr=open('/dev/null', 'w'))
     return result == 0
 
@@ -147,8 +154,10 @@ def main():
 
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("dev", dev))
+    dp.add_handler(CommandHandler("wlan", wlan))
     dp.add_handler(CommandHandler("help", help))
-    dp.add_handler(MessageHandler(Filters.text, echo))
+    dp.add_handler(MessageHandler(Filters.text, start))
     dp.add_error_handler(error)
 
     updater.start_polling()
