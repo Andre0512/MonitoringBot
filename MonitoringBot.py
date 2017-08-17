@@ -140,6 +140,10 @@ def ping(ip, remote=None, count=2):
     return result == 0
 
 
+def restart(bot, update):
+    update.message.reply_text('Bot wird neugestartet...')
+    print(subprocess.check_output(shlex.split("bash startup.sh restart")))
+
 def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))
 
@@ -156,6 +160,7 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("dev", dev))
     dp.add_handler(CommandHandler("wlan", wlan))
+    dp.add_handler(CommandHandler("restart", restart))
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(MessageHandler(Filters.text, start))
     dp.add_error_handler(error)
