@@ -16,3 +16,7 @@ family:
         <HOST-NAME1>: <IP-ADDRESS>
         <HOST-NAME2>: <IP-ADDRESS>
         <..........>: <..........>
+stars:
+        <BOT-NAME1>: <BOT-OR-CHANNEL>
+        <BOT-NAME2>: <BOT-OR-CHANNEL>
+        <.........>: <..............>
