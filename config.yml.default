@@ -20,3 +20,7 @@ stars:
         <BOT-NAME1>: <BOT-OR-CHANNEL>
         <BOT-NAME2>: <BOT-OR-CHANNEL>
         <.........>: <..............>
+members:
+        <CHANNEL-NAME1>: <NO-MATTER>
+        <CHANNEL-NAME2>: <NO-MATTER>
+        <.............>: <.........>

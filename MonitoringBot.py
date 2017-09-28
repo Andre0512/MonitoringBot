@@ -88,9 +88,16 @@ def update_devices(value, secure=False):
 @run_async
 def update_stars(value, key):
     stars, number = get_stars(value, key)
-    replace = '_' + "{0:.2f}".format(round(stars, 2)) + '_ ⭐️'
+    replace = '_' + "{0:.3f}".format(round(stars, 3)) + '_ ⭐️'
     extra = ' (_' + str(number) + '_)'
     return [replace, extra]
+
+
+@run_async
+def update_members(key):
+    members = get_members(key)
+    replace = '_' + "{0:02d}".format(int(members)) + '_ 👥'
+    return replace
 
 
 @run_async
@@ -105,6 +112,8 @@ def running_updates(val, m_id, bot):
             f_dict[key] = update_fhem(value)
         elif val == 'stars':
             f_dict[key] = update_stars(value, key)
+        elif val == 'members':
+            f_dict[key] = update_members(key)
         elif val == 'devices' or val == 'family':
             f_dict[key] = update_devices(value, secure=True if val == 'family' else False)
     for key, value in sorted(f_dict.items()):
@@ -135,7 +144,6 @@ def dev(bot, update):
     msg['processes'] = "*Python-Scripts*\n" + add_category('processes')
     msg['fhem'] = "*FHEM*\n" + add_category('fhem')
     msg['devices'] = "*Geräte*\n" + add_category('devices')
-    msg['stars'] = "*StoreBot*\n" + add_category('stars')
     base_msg(update, bot, msg)
 
 
@@ -151,6 +159,7 @@ def bots(bot, update):
     global msg
     msg = {}
     msg['stars'] = "*StoreBot*\n" + add_category('stars')
+    msg['members'] = "*Mitglieder*\n" + add_category('members')
     msg['processes'] = "*Python-Scripts*\n" + add_category('processes')
     base_msg(update, bot, msg)
 
@@ -168,8 +177,14 @@ def get_stars(typ, bot):
     response = urlopen('https://' + url + '/' + bot).read().decode('utf-8')
     percent, number = re.findall('@' + bot + '.*\n.*width\:([0-9\.]*)%".*?\(([0-9]*)\)', response)[0]
     stars = float(percent) / 20
-    stars = round(stars, 2)
+    stars = round(stars, 3)
     return stars, number
+
+
+def get_members(channel):
+    response = urlopen('https://t.me/' + channel).read().decode('utf-8')
+    members = re.findall('tgme_page_extra">([0-9]*) members', response)[0]
+    return members
 
 
 def restart(bot, update):
