@@ -22,6 +22,9 @@ if [[ "$1" == "pgrep" ]]; then
     elif [[ "$2" == "Uberspace" ]]; then
        result=$(ssh abasche@abasche.de "pgrep -fl python3")
        getPid $3
+    elif [[ "$2" == "FFW" ]]; then
+       result=$(ssh ffwoz@feuerwehr-oberzissen.de "pgrep -fl python")
+       getPid $3
     elif [[ "$2" == "VPS" ]]; then
        result=$(ssh andre@cloud.abasche.de "pgrep -a python3")
        getPid $3
