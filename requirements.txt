@@ -1,2 +1,5 @@
-python_telegram_bot
-PyYAML
+certifi==2018.1.18
+future==0.16.0
+pkg-resources==0.0.0
+python-telegram-bot==10.0.1
+PyYAML==3.12
